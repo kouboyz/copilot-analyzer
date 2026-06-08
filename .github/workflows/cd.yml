@@ -33,3 +33,8 @@ jobs:
             --generate-notes \
             *.vsix
 
+      - name: Publish to VS Code Marketplace
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        run: npx vsce publish --pat "$VSCE_PAT"
+ 
