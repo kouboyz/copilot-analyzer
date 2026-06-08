@@ -74,6 +74,7 @@ export interface SessionAnalysis {
   title: string;
   sessionId: string;
   workspaceHash: string;
+  source?: 'chat' | 'cli';
   startTime: number;
   endTime: number;
   durationMin: number;

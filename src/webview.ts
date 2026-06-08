@@ -1,7 +1,12 @@
 import { SessionAnalysis } from './analyzer';
 import { Messages } from './i18n';
 
-export function buildWebviewHtml(sessions: SessionAnalysis[], m: Messages, locale: string): string {
+export interface SetupStatus {
+  chatEnabled: boolean;
+  cliConfigured: boolean;
+}
+
+export function buildWebviewHtml(sessions: SessionAnalysis[], m: Messages, locale: string, setupStatus: SetupStatus): string {
   const sorted = [...sessions].sort((a, b) => b.startTime - a.startTime);
 
   const sessionRows = sorted.map(s => {
@@ -24,10 +29,13 @@ export function buildWebviewHtml(sessions: SessionAnalysis[], m: Messages, local
         ? `${s.usedToolCount} / ?`
         : `${s.usedToolCount} / ${s.definedToolCount}`;
 
+    const sourceBadge = s.source === 'cli'
+      ? `<span class="source-badge cli">CLI</span>`
+      : `<span class="source-badge chat">Chat</span>`;
     return `
-      <tr class="session-row ${severityClass}" data-session="${s.sessionId}" data-project="${s.projectName || ''}" data-ts="${s.startTime}" onclick="showDetail('${s.sessionId}')">
+      <tr class="session-row ${severityClass}" data-session="${s.sessionId}" data-project="${s.projectName || ''}" data-ts="${s.startTime}" data-source="${s.source || 'chat'}" onclick="showDetail('${s.sessionId}')">
         <td>${date}</td>
-        <td>${s.projectName || '-'}</td>
+        <td>${s.projectName || '-'} ${sourceBadge}</td>
         <td title="${s.title || ''}" style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${s.title || '-'}</td>
         <td>${s.durationMin}</td>
         <td class="cell-${turnClass}">${s.turnCount}</td>
@@ -224,10 +232,55 @@ export function buildWebviewHtml(sessions: SessionAnalysis[], m: Messages, local
   }
   .summary-stats span { white-space: nowrap; }
   .summary-stats .stat-val { color: var(--vscode-foreground); font-weight: bold; }
+  .source-badge {
+    font-size: 9px;
+    padding: 1px 4px;
+    border-radius: 3px;
+    vertical-align: middle;
+    font-weight: bold;
+  }
+  .source-badge.chat {
+    background: #0e639c;
+    color: #fff;
+  }
+  .source-badge.cli {
+    background: #4b7f35;
+    color: #fff;
+  }
+  .setup-card {
+    border: 1px solid var(--vscode-panel-border);
+    border-radius: 4px;
+    padding: 8px 10px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .setup-card.ok { border-left: 3px solid #4ec9b0; }
+  .setup-card.warn { border-left: 3px solid #cca700; }
+  .setup-card-left { display: flex; align-items: center; gap: 6px; flex: 1; min-width: 0; }
+  .setup-card-icon { font-size: 14px; flex-shrink: 0; }
+  .setup-card-text { font-size: 11px; }
+  .setup-card-title { font-weight: bold; margin-bottom: 2px; }
+  .setup-card-desc { color: var(--vscode-descriptionForeground); }
+  .setup-btn {
+    background: var(--vscode-button-background);
+    color: var(--vscode-button-foreground);
+    border: none;
+    border-radius: 3px;
+    padding: 4px 10px;
+    font-size: 11px;
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .setup-btn:hover { background: var(--vscode-button-hoverBackground); }
 </style>
 </head>
 <body>
 <div id="summary-view">
+  ${buildSetupCards(setupStatus, m)}
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
     <h2 style="margin:0">${m.appTitle}</h2>
     <div style="display:flex;gap:8px">
@@ -245,6 +298,11 @@ export function buildWebviewHtml(sessions: SessionAnalysis[], m: Messages, local
       <option value="7">${m.last7days}</option>
       <option value="30">${m.last30days}</option>
       <option value="90">${m.last90days}</option>
+    </select>
+    <select id="filter-source" onchange="applyFilters()">
+      <option value="">${m.allSources}</option>
+      <option value="chat">Chat</option>
+      <option value="cli">CLI</option>
     </select>
   </div>
   <div id="summary-stats" class="summary-stats"></div>
@@ -279,6 +337,8 @@ export function buildWebviewHtml(sessions: SessionAnalysis[], m: Messages, local
 
   function refresh() { vscode.postMessage({ command: 'refresh' }); }
   function toggleLocale() { vscode.postMessage({ command: 'toggleLocale' }); }
+  function enableChatLog() { vscode.postMessage({ command: 'enableChatLog' }); }
+  function enableCliOtel() { vscode.postMessage({ command: 'enableCliOtel' }); }
 
   function showDetail(sessionId) {
     currentSession = sessionId;
@@ -297,13 +357,15 @@ export function buildWebviewHtml(sessions: SessionAnalysis[], m: Messages, local
   function applyFilters() {
     const project = document.getElementById('filter-project').value;
     const days = parseInt(document.getElementById('filter-period').value);
+    const source = document.getElementById('filter-source').value;
     const cutoff = days > 0 ? Date.now() - days * 86400000 : 0;
     const rows = document.querySelectorAll('#session-tbody .session-row');
     let visible = 0, totalCredits = 0, totalInput = 0, cacheSum = 0, cacheCount = 0;
     rows.forEach(row => {
       const rowProject = row.dataset.project || '';
       const rowTs = parseInt(row.dataset.ts || '0');
-      const show = (!project || rowProject === project) && (!cutoff || rowTs >= cutoff);
+      const rowSource = row.dataset.source || '';
+      const show = (!project || rowProject === project) && (!cutoff || rowTs >= cutoff) && (!source || rowSource === source);
       row.style.display = show ? '' : 'none';
       if (show) {
         visible++;
@@ -424,4 +486,38 @@ function buildLlmBreakdown(s: SessionAnalysis, m: Messages): string {
     <thead><tr><th>${m.llmColPurpose}</th><th>${m.llmColModel}</th><th>${m.llmColInput}</th><th>${m.llmColOutput}</th><th>${m.llmColCacheRate}</th></tr></thead>
     <tbody>${rows}</tbody>
   </table>`;
+}
+
+function buildSetupCards(status: SetupStatus, m: Messages): string {
+  const cards: string[] = [];
+
+  if (!status.chatEnabled) {
+    cards.push(`
+      <div class="setup-card warn">
+        <div class="setup-card-left">
+          <span class="setup-card-icon">💬</span>
+          <div class="setup-card-text">
+            <div class="setup-card-title">Copilot Chat</div>
+            <div class="setup-card-desc">${m.setupChatDesc}</div>
+          </div>
+        </div>
+        <button class="setup-btn" onclick="enableChatLog()">${m.setupEnable}</button>
+      </div>`);
+  }
+
+  if (!status.cliConfigured) {
+    cards.push(`
+      <div class="setup-card warn">
+        <div class="setup-card-left">
+          <span class="setup-card-icon">⌨</span>
+          <div class="setup-card-text">
+            <div class="setup-card-title">Copilot CLI</div>
+            <div class="setup-card-desc">${m.setupCliDesc}</div>
+          </div>
+        </div>
+        <button class="setup-btn" onclick="enableCliOtel()">${m.setupEnable}</button>
+      </div>`);
+  }
+
+  return cards.join('');
 }

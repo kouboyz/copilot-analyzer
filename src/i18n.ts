@@ -4,9 +4,15 @@ const ja = {
   refresh: '↺ 再読み込み',
   habitLabel: '習慣',
 
+  // Setup cards
+  setupEnable: '有効にする',
+  setupChatDesc: 'デバッグログが未設定です。有効にするとセッション詳細を分析できます。',
+  setupCliDesc: 'OTelエクスポートが未設定です。有効にするとCLIセッションを分析できます。',
+
   // Filters
   allProjects: 'すべてのプロジェクト',
   allPeriods: 'すべての期間',
+  allSources: 'すべての種類',
   last7days: '直近7日',
   last30days: '直近30日',
   last90days: '直近90日',
@@ -122,8 +128,14 @@ const en: typeof ja = {
   refresh: '↺ Refresh',
   habitLabel: 'Habit',
 
+  // Setup cards
+  setupEnable: 'Enable',
+  setupChatDesc: 'Debug logging is not enabled. Enable it to analyze session details.',
+  setupCliDesc: 'OTel export is not configured. Enable it to analyze CLI sessions.',
+
   allProjects: 'All projects',
   allPeriods: 'All time',
+  allSources: 'All sources',
   last7days: 'Last 7 days',
   last30days: 'Last 30 days',
   last90days: 'Last 90 days',
