@@ -3,9 +3,9 @@
   "displayName": "Copilot Context Analyzer",
   "description": "Analyze GitHub Copilot session logs to identify context waste and optimize AI credit usage",
   "version": "1.0.0",
-  "publisher": "3b109cbc-353e-4f1d-9018-3270f8e94799",
+  "publisher": "kouboyz",
   "author": {
-    "name": "kosuke-matsuo"
+    "name": "kouboyz"
   },
   "engines": {
     "vscode": "^1.120.0"
