@@ -1,0 +1,7 @@
+{"v":1,"ts":1778300000000,"dur":0,"sid":"test-session-overflow","type":"session_start","name":"session_start","spanId":"span-start","status":"ok","attrs":{"copilotVersion":"0.47.0","vscodeVersion":"1.119.0"}}
+{"ts":1778300001000,"dur":0,"sid":"test-session-overflow","type":"llm_request","name":"chat:gpt-5.4","spanId":"span-llm-1","status":"ok","attrs":{"model":"gpt-5.4","debugName":"summarizeConversationHistory","inputTokens":200000,"outputTokens":8000,"cachedTokens":10000}}
+{"ts":1778300010000,"dur":0,"sid":"test-session-overflow","type":"llm_request","name":"chat:gpt-5.4","spanId":"span-llm-2","status":"ok","attrs":{"model":"gpt-5.4","debugName":"panel/editAgent","inputTokens":180000,"outputTokens":1000,"cachedTokens":150000}}
+{"ts":1778300001000,"dur":0,"sid":"test-session-overflow","type":"turn_start","name":"turn_start:0","spanId":"span-ts-0","status":"ok","attrs":{}}
+{"ts":1778300002000,"dur":0,"sid":"test-session-overflow","type":"turn_end","name":"turn_end:0","spanId":"span-te-0","status":"ok","attrs":{"turnId":"0"}}
+{"ts":1778300003000,"dur":0,"sid":"test-session-overflow","type":"turn_start","name":"turn_start:1","spanId":"span-ts-1","status":"ok","attrs":{}}
+{"ts":1778300004000,"dur":0,"sid":"test-session-overflow","type":"turn_end","name":"turn_end:1","spanId":"span-te-1","status":"ok","attrs":{"turnId":"1"}}

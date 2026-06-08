@@ -1,0 +1,77 @@
+{
+  "name": "copilot-analyzer",
+  "displayName": "Copilot Context Analyzer",
+  "description": "Analyze GitHub Copilot session logs to identify context waste and optimize AI credit usage",
+  "version": "1.0.0",
+  "publisher": "kosuke-matsuo",
+  "author": {
+    "name": "kosuke-matsuo"
+  },
+  "engines": {
+    "vscode": "^1.120.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "keywords": [
+    "github copilot",
+    "copilot",
+    "ai",
+    "context",
+    "token",
+    "analyzer"
+  ],
+  "icon": "icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kouboyz/copilot-analyzer.git"
+  },
+  "bugs": {
+    "url": "https://github.com/kouboyz/copilot-analyzer/issues"
+  },
+  "homepage": "https://github.com/kouboyz/copilot-analyzer#readme",
+  "activationEvents": [],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "copilot-analyzer.analyze",
+        "title": "Copilot: Analyze Context Usage"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "copilot-analyzer",
+          "title": "Copilot Analyzer",
+          "icon": "$(graph)"
+        }
+      ]
+    },
+    "views": {
+      "copilot-analyzer": [
+        {
+          "type": "webview",
+          "id": "copilot-analyzer.dashboard",
+          "name": "Context Analysis"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "compile": "node esbuild.mjs",
+    "watch": "node esbuild.mjs --watch",
+    "vscode:prepublish": "node esbuild.mjs --production",
+    "package": "vsce package",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.42",
+    "@types/vscode": "^1.120.0",
+    "@vscode/vsce": "^3.0.0",
+    "esbuild": "^0.28.0",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.8"
+  }
+}

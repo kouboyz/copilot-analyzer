@@ -1,0 +1,1 @@
+{"content": "[{\"type\":\"function\",\"name\":\"read_file\",\"description\":\"Read a file\"},{\"type\":\"function\",\"name\":\"run_in_terminal\",\"description\":\"Run command\"},{\"type\":\"function\",\"name\":\"write_file\",\"description\":\"Write a file\"},{\"type\":\"function\",\"name\":\"grep_search\",\"description\":\"Search files\"}]"}

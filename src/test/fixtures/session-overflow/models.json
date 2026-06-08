@@ -1,0 +1,8 @@
+[
+  {
+    "id": "gpt-5.4",
+    "name": "GPT-5.4",
+    "billing": { "multiplier": 1, "is_premium": true },
+    "capabilities": { "family": "gpt-5.4", "tokenizer": "o200k_base", "type": "chat", "object": "model_capabilities", "supports": {} }
+  }
+]

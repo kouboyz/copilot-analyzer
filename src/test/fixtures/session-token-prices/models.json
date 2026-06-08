@@ -1,0 +1,19 @@
+[
+  {
+    "id": "gpt-5.3-codex",
+    "name": "GPT-5.3-Codex",
+    "billing": {
+      "restricted_to": ["pro", "enterprise"],
+      "token_prices": {
+        "batch_size": 1000000,
+        "default": {
+          "cache_price": 17,
+          "context_max": 272000,
+          "input_price": 175,
+          "output_price": 1400
+        }
+      }
+    },
+    "capabilities": { "family": "gpt-5.3-codex", "tokenizer": "o200k_base", "type": "chat", "object": "model_capabilities", "supports": {} }
+  }
+]

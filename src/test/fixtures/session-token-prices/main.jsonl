@@ -1,0 +1,6 @@
+{"v":1,"ts":1778400000000,"dur":0,"sid":"test-session-token-prices","type":"session_start","name":"session_start","spanId":"span-start","status":"ok","attrs":{"copilotVersion":"0.51.0","vscodeVersion":"1.123.0"}}
+{"ts":1778400001000,"dur":9000,"sid":"test-session-token-prices","type":"llm_request","name":"chat:gpt-5.3-codex","spanId":"span-llm-1","status":"ok","attrs":{"model":"gpt-5.3-codex","debugName":"panel/editAgent","inputTokens":18630,"outputTokens":229,"cachedTokens":5632}}
+{"ts":1778400011000,"dur":8000,"sid":"test-session-token-prices","type":"llm_request","name":"chat:gpt-5.3-codex","spanId":"span-llm-2","status":"ok","attrs":{"model":"gpt-5.3-codex","debugName":"panel/editAgent","inputTokens":18899,"outputTokens":314,"cachedTokens":18688}}
+{"ts":1778400020000,"dur":7000,"sid":"test-session-token-prices","type":"llm_request","name":"chat:gpt-5.3-codex","spanId":"span-llm-3","status":"ok","attrs":{"model":"gpt-5.3-codex","debugName":"panel/editAgent","inputTokens":19250,"outputTokens":224,"cachedTokens":19072}}
+{"ts":1778400001000,"dur":0,"sid":"test-session-token-prices","type":"turn_start","name":"turn_start:0","spanId":"span-ts-0","status":"ok","attrs":{}}
+{"ts":1778400028000,"dur":0,"sid":"test-session-token-prices","type":"turn_end","name":"turn_end:0","spanId":"span-te-0","status":"ok","attrs":{"turnId":"0"}}

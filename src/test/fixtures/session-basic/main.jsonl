@@ -1,0 +1,12 @@
+{"v":1,"ts":1778285233662,"dur":0,"sid":"test-session-basic","type":"session_start","name":"session_start","spanId":"span-start","status":"ok","attrs":{"copilotVersion":"0.47.0","vscodeVersion":"1.119.0"}}
+{"ts":1778285234000,"dur":0,"sid":"test-session-basic","type":"discovery","name":"Instructions Discovery","spanId":"span-disc","status":"ok","attrs":{"details":"Resolved 0 instructions in 10ms | folders: []","category":"discovery","source":"core"}}
+{"ts":1778285235000,"dur":0,"sid":"test-session-basic","type":"generic","name":"Resolve Customizations","spanId":"span-cust","status":"ok","attrs":{"details":"Resolved 1 customizations (1 listed) in 20ms | [applying] copilot-instructions.md — always added, [skill] find-skills — user"}}
+{"ts":1778285236000,"dur":5000,"sid":"test-session-basic","type":"llm_request","name":"chat:gpt-4.1","spanId":"span-llm-1","status":"ok","attrs":{"model":"gpt-4.1","debugName":"panel/editAgent","inputTokens":50000,"outputTokens":500,"cachedTokens":40000,"systemPromptFile":"system_prompt_0.json","toolsFile":"tools_0.json"}}
+{"ts":1778285242000,"dur":3000,"sid":"test-session-basic","type":"llm_request","name":"chat:gpt-4.1","spanId":"span-llm-2","status":"ok","attrs":{"model":"gpt-4.1","debugName":"panel/editAgent","inputTokens":52000,"outputTokens":300,"cachedTokens":48000,"systemPromptFile":"system_prompt_0.json","toolsFile":"tools_0.json"}}
+{"ts":1778285236000,"dur":0,"sid":"test-session-basic","type":"turn_start","name":"turn_start:0","spanId":"span-ts-0","status":"ok","attrs":{}}
+{"ts":1778285241000,"dur":0,"sid":"test-session-basic","type":"turn_end","name":"turn_end:0","spanId":"span-te-0","status":"ok","attrs":{"turnId":"0"}}
+{"ts":1778285242000,"dur":0,"sid":"test-session-basic","type":"turn_start","name":"turn_start:1","spanId":"span-ts-1","status":"ok","attrs":{}}
+{"ts":1778285246000,"dur":0,"sid":"test-session-basic","type":"turn_end","name":"turn_end:1","spanId":"span-te-1","status":"ok","attrs":{"turnId":"1"}}
+{"ts":1778285237000,"dur":0,"sid":"test-session-basic","type":"tool_call","name":"read_file","spanId":"span-tool-1","status":"ok","attrs":{}}
+{"ts":1778285238000,"dur":0,"sid":"test-session-basic","type":"tool_call","name":"run_in_terminal","spanId":"span-tool-2","status":"ok","attrs":{}}
+{"ts":1778285246000,"dur":0,"sid":"test-session-basic","type":"user_message","name":"user_message","spanId":"span-user-1","status":"ok","attrs":{}}
