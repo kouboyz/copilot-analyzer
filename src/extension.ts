@@ -177,6 +177,8 @@ class CopilotAnalyzerViewProvider implements vscode.WebviewViewProvider {
     const chatEnabled = isChatDebugLogEnabled();
     const cliConfigured = isCliOtelConfigured();
 
+    const NEW_PRICING_CUTOFF = new Date('2026-06-01').getTime();
+
     // Load Copilot Chat sessions
     const sessions: SessionAnalysis[] = [];
     if (chatEnabled) {
@@ -204,8 +206,9 @@ class CopilotAnalyzerViewProvider implements vscode.WebviewViewProvider {
       }
     }
 
+    const recentSessions = sessions.filter(s => s.startTime >= NEW_PRICING_CUTOFF);
     const setupStatus = { chatEnabled, cliConfigured };
-    this._view.webview.html = buildWebviewHtml(sessions, m, locale, setupStatus);
+    this._view.webview.html = buildWebviewHtml(recentSessions, m, locale, setupStatus);
   }
 }
 
