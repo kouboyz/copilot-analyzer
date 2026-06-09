@@ -1,7 +1,12 @@
+import { exec, execSync } from 'child_process';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
+import { promisify } from 'util';
 import * as vscode from 'vscode';
+
+const execAsync = promisify(exec);
+const OTEL_ENV_VAR = 'COPILOT_OTEL_FILE_EXPORTER_PATH';
 import { findDebugLogDirs, parseSession, SessionAnalysis } from './analyzer';
 import { getDefaultOtelPath, parseCliSessions } from './cli-analyzer';
 import { buildWebviewHtml } from './webview';
@@ -30,33 +35,51 @@ function detectShellProfilePath(): string | null {
     return fs.existsSync(bashProfile) ? bashProfile : path.join(home, '.bashrc');
   }
   if (shell.includes('fish')) { return path.join(home, '.config', 'fish', 'config.fish'); }
-  if (process.platform === 'win32') {
-    const ps7Profile = path.join(home, 'Documents', 'PowerShell', 'Microsoft.PowerShell_profile.ps1');
-    const ps5Profile = path.join(home, 'Documents', 'WindowsPowerShell', 'Microsoft.PowerShell_profile.ps1');
-    return fs.existsSync(ps7Profile) ? ps7Profile : ps5Profile;
-  }
   return null;
 }
 
-function getOtelExportLine(profilePath: string): string {
-  if (profilePath.endsWith('.ps1')) {
-    return `$env:COPILOT_OTEL_FILE_EXPORTER_PATH = "$env:USERPROFILE\\.copilot\\otel-sessions.jsonl"`;
+function isCliOtelConfiguredWindows(): boolean {
+  try {
+    const result = execSync(`reg query HKCU\\Environment /v ${OTEL_ENV_VAR}`, { stdio: 'pipe' }).toString();
+    return result.includes(OTEL_ENV_VAR);
+  } catch {
+    return false;
   }
-  return `export COPILOT_OTEL_FILE_EXPORTER_PATH="$HOME/.copilot/otel-sessions.jsonl"`;
 }
 
 function isCliOtelConfigured(): boolean {
+  if (process.platform === 'win32') { return isCliOtelConfiguredWindows(); }
   const profilePath = detectShellProfilePath();
   if (!profilePath || !fs.existsSync(profilePath)) { return false; }
-  return fs.readFileSync(profilePath, 'utf-8').includes('COPILOT_OTEL_FILE_EXPORTER_PATH');
+  return fs.readFileSync(profilePath, 'utf-8').includes(OTEL_ENV_VAR);
 }
 
-function ensureParentDir(filePath: string): void {
-  const dir = path.dirname(filePath);
-  if (!fs.existsSync(dir)) { fs.mkdirSync(dir, { recursive: true }); }
+async function enableCliOtelWindows(locale: string): Promise<boolean> {
+  const isJa = locale.startsWith('ja');
+  const otelPath = `%USERPROFILE%\\.copilot\\otel-sessions.jsonl`;
+  const confirmMsg = isJa
+    ? `ユーザー環境変数 ${OTEL_ENV_VAR} を設定しますか？`
+    : `Set user environment variable ${OTEL_ENV_VAR}?`;
+  const choice = await vscode.window.showInformationMessage(confirmMsg, isJa ? 'はい' : 'Yes', isJa ? 'キャンセル' : 'Cancel');
+  if (choice !== (isJa ? 'はい' : 'Yes')) { return false; }
+
+  try {
+    await execAsync(`setx ${OTEL_ENV_VAR} "${otelPath}"`);
+    vscode.window.showInformationMessage(
+      isJa ? `${OTEL_ENV_VAR} を設定しました。新しいターミナルで有効になります。` : `${OTEL_ENV_VAR} set. Open a new terminal to apply.`,
+    );
+    return true;
+  } catch (err) {
+    vscode.window.showErrorMessage(
+      isJa ? `環境変数の設定に失敗しました: ${err}` : `Failed to set environment variable: ${err}`,
+    );
+    return false;
+  }
 }
 
 async function enableCliOtel(locale: string): Promise<boolean> {
+  if (process.platform === 'win32') { return enableCliOtelWindows(locale); }
+
   const profilePath = detectShellProfilePath();
   const isJa = locale.startsWith('ja');
   if (!profilePath) {
@@ -66,16 +89,16 @@ async function enableCliOtel(locale: string): Promise<boolean> {
     return false;
   }
   const confirmMsg = isJa
-    ? `${profilePath} に COPILOT_OTEL_FILE_EXPORTER_PATH を追記しますか？`
-    : `Add COPILOT_OTEL_FILE_EXPORTER_PATH to ${profilePath}?`;
+    ? `${profilePath} に ${OTEL_ENV_VAR} を追記しますか？`
+    : `Add ${OTEL_ENV_VAR} to ${profilePath}?`;
   const choice = await vscode.window.showInformationMessage(confirmMsg, isJa ? 'はい' : 'Yes', isJa ? 'キャンセル' : 'Cancel');
   if (choice !== (isJa ? 'はい' : 'Yes')) { return false; }
 
-  ensureParentDir(profilePath);
+  const dir = path.dirname(profilePath);
+  if (!fs.existsSync(dir)) { fs.mkdirSync(dir, { recursive: true }); }
   const content = fs.existsSync(profilePath) ? fs.readFileSync(profilePath, 'utf-8') : '';
   const newline = content.endsWith('\n') || content === '' ? '' : '\n';
-  const exportLine = getOtelExportLine(profilePath);
-  fs.appendFileSync(profilePath, `${newline}# Added by Copilot Analyzer\n${exportLine}\n`);
+  fs.appendFileSync(profilePath, `${newline}# Added by Copilot Analyzer\nexport ${OTEL_ENV_VAR}="$HOME/.copilot/otel-sessions.jsonl"\n`);
   vscode.window.showInformationMessage(
     isJa
       ? `${profilePath} に追記しました。新しいターミナルで有効になります。`
