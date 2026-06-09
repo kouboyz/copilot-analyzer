@@ -22,23 +22,38 @@ async function enableChatDebugLog(): Promise<void> {
 }
 
 function detectShellProfilePath(): string | null {
-  const shell = process.env.SHELL ?? '';
   const home = os.homedir();
+  const shell = process.env.SHELL ?? '';
   if (shell.includes('zsh')) { return path.join(home, '.zshrc'); }
   if (shell.includes('bash')) {
     const bashProfile = path.join(home, '.bash_profile');
     return fs.existsSync(bashProfile) ? bashProfile : path.join(home, '.bashrc');
   }
   if (shell.includes('fish')) { return path.join(home, '.config', 'fish', 'config.fish'); }
+  if (process.platform === 'win32') {
+    const ps7Profile = path.join(home, 'Documents', 'PowerShell', 'Microsoft.PowerShell_profile.ps1');
+    const ps5Profile = path.join(home, 'Documents', 'WindowsPowerShell', 'Microsoft.PowerShell_profile.ps1');
+    return fs.existsSync(ps7Profile) ? ps7Profile : ps5Profile;
+  }
   return null;
 }
 
-const OTEL_EXPORT_LINE = `export COPILOT_OTEL_FILE_EXPORTER_PATH="$HOME/.copilot/otel-sessions.jsonl"`;
+function getOtelExportLine(profilePath: string): string {
+  if (profilePath.endsWith('.ps1')) {
+    return `$env:COPILOT_OTEL_FILE_EXPORTER_PATH = "$env:USERPROFILE\\.copilot\\otel-sessions.jsonl"`;
+  }
+  return `export COPILOT_OTEL_FILE_EXPORTER_PATH="$HOME/.copilot/otel-sessions.jsonl"`;
+}
 
 function isCliOtelConfigured(): boolean {
   const profilePath = detectShellProfilePath();
   if (!profilePath || !fs.existsSync(profilePath)) { return false; }
   return fs.readFileSync(profilePath, 'utf-8').includes('COPILOT_OTEL_FILE_EXPORTER_PATH');
+}
+
+function ensureParentDir(filePath: string): void {
+  const dir = path.dirname(filePath);
+  if (!fs.existsSync(dir)) { fs.mkdirSync(dir, { recursive: true }); }
 }
 
 async function enableCliOtel(locale: string): Promise<boolean> {
@@ -56,9 +71,11 @@ async function enableCliOtel(locale: string): Promise<boolean> {
   const choice = await vscode.window.showInformationMessage(confirmMsg, isJa ? 'はい' : 'Yes', isJa ? 'キャンセル' : 'Cancel');
   if (choice !== (isJa ? 'はい' : 'Yes')) { return false; }
 
+  ensureParentDir(profilePath);
   const content = fs.existsSync(profilePath) ? fs.readFileSync(profilePath, 'utf-8') : '';
   const newline = content.endsWith('\n') || content === '' ? '' : '\n';
-  fs.appendFileSync(profilePath, `${newline}# Added by Copilot Analyzer\n${OTEL_EXPORT_LINE}\n`);
+  const exportLine = getOtelExportLine(profilePath);
+  fs.appendFileSync(profilePath, `${newline}# Added by Copilot Analyzer\n${exportLine}\n`);
   vscode.window.showInformationMessage(
     isJa
       ? `${profilePath} に追記しました。新しいターミナルで有効になります。`
