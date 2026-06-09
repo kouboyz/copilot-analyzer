@@ -8,6 +8,15 @@ export interface SetupStatus {
 
 export function buildWebviewHtml(sessions: SessionAnalysis[], m: Messages, locale: string, setupStatus: SetupStatus): string {
   const sorted = [...sessions].sort((a, b) => b.startTime - a.startTime);
+  const chartData = JSON.stringify(
+    sorted.map(s => ({
+      d: new Date(s.startTime).toISOString().slice(0, 10),
+      c: s.totalCredits,
+      p: s.projectName || '',
+      src: s.source || 'chat',
+      ts: s.startTime,
+    }))
+  );
 
   const sessionRows = sorted.map(s => {
     const date = new Date(s.startTime).toLocaleString();
@@ -276,6 +285,26 @@ export function buildWebviewHtml(sessions: SessionAnalysis[], m: Messages, local
     flex-shrink: 0;
   }
   .setup-btn:hover { background: var(--vscode-button-hoverBackground); }
+  .chart-section { margin-bottom: 12px; }
+  .chart-section h3 { margin: 0 0 6px; font-size: 13px; color: var(--vscode-descriptionForeground); }
+  .chart-wrap { position: relative; width: 100%; overflow-x: auto; }
+  .chart-wrap svg { display: block; }
+  .chart-bar { fill: var(--vscode-charts-yellow, #cca700); opacity: 0.85; }
+  .chart-bar:hover { opacity: 1; }
+  .chart-axis { stroke: var(--vscode-panel-border, #3c3c3c); stroke-width: 1; }
+  .chart-label { fill: var(--vscode-descriptionForeground); font-size: 9px; }
+  .chart-grid { stroke: var(--vscode-panel-border, #3c3c3c); stroke-width: 1; stroke-dasharray: 3,3; }
+  .chart-tooltip {
+    position: absolute;
+    background: var(--vscode-editorHoverWidget-background, #252526);
+    border: 1px solid var(--vscode-panel-border);
+    border-radius: 3px;
+    padding: 4px 8px;
+    font-size: 11px;
+    pointer-events: none;
+    display: none;
+    white-space: nowrap;
+  }
 </style>
 </head>
 <body>
@@ -306,6 +335,13 @@ export function buildWebviewHtml(sessions: SessionAnalysis[], m: Messages, local
     </select>
   </div>
   <div id="summary-stats" class="summary-stats"></div>
+  <div class="chart-section">
+    <h3>${locale.startsWith('ja') ? '日別クレジット消費' : 'Daily Credit Usage'}</h3>
+    <div class="chart-wrap">
+      <svg id="daily-chart" width="100%" height="120"></svg>
+      <div class="chart-tooltip" id="chart-tooltip"></div>
+    </div>
+  </div>
   <p style="font-size:11px;color:var(--vscode-descriptionForeground)">${m.clickToDetail}</p>
   <table id="session-table">
     <thead>
@@ -334,11 +370,76 @@ export function buildWebviewHtml(sessions: SessionAnalysis[], m: Messages, local
 <script>
   const vscode = acquireVsCodeApi();
   let currentSession = null;
+  const ALL_SESSIONS = ${chartData};
 
   function refresh() { vscode.postMessage({ command: 'refresh' }); }
   function toggleLocale() { vscode.postMessage({ command: 'toggleLocale' }); }
   function enableChatLog() { vscode.postMessage({ command: 'enableChatLog' }); }
   function enableCliOtel() { vscode.postMessage({ command: 'enableCliOtel' }); }
+
+  function renderChart(filteredSessions) {
+    const svg = document.getElementById('daily-chart');
+    if (!svg) return;
+    const W = svg.getBoundingClientRect().width || 400;
+    const H = 120;
+    const PAD = { top: 8, right: 8, bottom: 28, left: 36 };
+    const plotW = W - PAD.left - PAD.right;
+    const plotH = H - PAD.top - PAD.bottom;
+
+    const byDay = {};
+    for (const s of filteredSessions) {
+      byDay[s.d] = (byDay[s.d] || 0) + s.c;
+    }
+    const days = Object.keys(byDay).sort();
+    if (days.length === 0) { svg.innerHTML = ''; return; }
+
+    const maxVal = Math.max(...Object.values(byDay), 1);
+    const barW = Math.max(4, Math.min(40, Math.floor(plotW / days.length) - 2));
+
+    let bars = '', labels = '', grids = '';
+    const gridCount = 4;
+    for (let i = 0; i <= gridCount; i++) {
+      const v = maxVal * i / gridCount;
+      const y = PAD.top + plotH - (plotH * i / gridCount);
+      grids += \`<line class="chart-grid" x1="\${PAD.left}" x2="\${W - PAD.right}" y1="\${y}" y2="\${y}"/>\`;
+      grids += \`<text class="chart-label" x="\${PAD.left - 3}" y="\${y + 3}" text-anchor="end">\${v.toFixed(v < 10 ? 1 : 0)}</text>\`;
+    }
+
+    for (let i = 0; i < days.length; i++) {
+      const day = days[i];
+      const val = byDay[day];
+      const x = PAD.left + (i + 0.5) * (plotW / days.length) - barW / 2;
+      const barH = Math.max(1, (val / maxVal) * plotH);
+      const y = PAD.top + plotH - barH;
+      bars += \`<rect class="chart-bar" x="\${x.toFixed(1)}" y="\${y.toFixed(1)}" width="\${barW}" height="\${barH.toFixed(1)}" data-day="\${day}" data-val="\${val.toFixed(2)}"/>\`;
+      const showLabel = days.length <= 30 || i % Math.ceil(days.length / 15) === 0;
+      if (showLabel) {
+        const labelX = PAD.left + (i + 0.5) * (plotW / days.length);
+        const shortDay = day.slice(5);
+        labels += \`<text class="chart-label" x="\${labelX.toFixed(1)}" y="\${H - 6}" text-anchor="middle">\${shortDay}</text>\`;
+      }
+    }
+
+    svg.setAttribute('height', H);
+    svg.innerHTML = \`
+      \${grids}
+      <line class="chart-axis" x1="\${PAD.left}" x2="\${W - PAD.right}" y1="\${PAD.top + plotH}" y2="\${PAD.top + plotH}"/>
+      \${bars}\${labels}\`;
+
+    const tooltip = document.getElementById('chart-tooltip');
+    svg.querySelectorAll('.chart-bar').forEach(bar => {
+      bar.addEventListener('mouseenter', e => {
+        tooltip.textContent = bar.dataset.day + ': ' + bar.dataset.val + ' credits';
+        tooltip.style.display = 'block';
+      });
+      bar.addEventListener('mousemove', e => {
+        const rect = svg.parentElement.getBoundingClientRect();
+        tooltip.style.left = (e.clientX - rect.left + 10) + 'px';
+        tooltip.style.top = (e.clientY - rect.top - 28) + 'px';
+      });
+      bar.addEventListener('mouseleave', () => { tooltip.style.display = 'none'; });
+    });
+  }
 
   function showDetail(sessionId) {
     currentSession = sessionId;
@@ -369,7 +470,6 @@ export function buildWebviewHtml(sessions: SessionAnalysis[], m: Messages, local
       row.style.display = show ? '' : 'none';
       if (show) {
         visible++;
-        // accumulate stats from data attributes
         const cells = row.querySelectorAll('td');
         const credits = parseFloat(cells[8]?.textContent || '0') || 0;
         const inputK = parseFloat(cells[5]?.textContent || '0') || 0;
@@ -386,10 +486,29 @@ export function buildWebviewHtml(sessions: SessionAnalysis[], m: Messages, local
       '<span>${m.totalCredits}: <span class="stat-val" style="color:var(--vscode-charts-yellow,#cca700)">' + totalCredits.toFixed(1) + '</span></span>' +
       '<span>${m.totalInput}: <span class="stat-val">' + totalInput.toFixed(1) + 'K</span></span>' +
       '<span>${m.avgCacheRate}: <span class="stat-val">' + avgCache + '%</span></span>';
+
+    const filtered = ALL_SESSIONS.filter(s =>
+      (!project || s.p === project) &&
+      (!cutoff || s.ts >= cutoff) &&
+      (!source || s.src === source)
+    );
+    renderChart(filtered);
   }
 
-  // initialize stats on load
+  // initialize on load
   applyFilters();
+  window.addEventListener('resize', () => {
+    const project = document.getElementById('filter-project').value;
+    const days = parseInt(document.getElementById('filter-period').value);
+    const source = document.getElementById('filter-source').value;
+    const cutoff = days > 0 ? Date.now() - days * 86400000 : 0;
+    const filtered = ALL_SESSIONS.filter(s =>
+      (!project || s.p === project) &&
+      (!cutoff || s.ts >= cutoff) &&
+      (!source || s.src === source)
+    );
+    renderChart(filtered);
+  });
 </script>
 </body>
 </html>`;
